@@ -1,7 +1,7 @@
 //! Process management syscalls
 use crate::{
     config::MAX_SYSCALL_NUM,
-    task::{count_syscall, exit_current_and_run_next, get_current_process_run_time, get_syscall_times, suspend_current_and_run_next, TaskStatus},
+    task::{exit_current_and_run_next, get_current_process_run_time, get_syscall_times, suspend_current_and_run_next, TaskStatus},
     timer::get_time_us,
 };
 
@@ -19,6 +19,7 @@ pub struct TimeVal {
 
 /// Task information
 #[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub struct TaskInfo {
     /// Task status in it's life cycle
     status: TaskStatus,
