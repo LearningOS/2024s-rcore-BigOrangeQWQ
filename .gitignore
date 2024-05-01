@@ -17,3 +17,9 @@ pushall.sh
 *.bak
 
 user/*
+
+
+ci-user/
+.vscode/
+
+.gdb_history

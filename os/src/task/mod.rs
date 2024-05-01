@@ -14,9 +14,10 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::config::MAX_APP_NUM;
+use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use crate::timer::get_time_ms;
 use lazy_static::*;
 use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -39,12 +40,49 @@ pub struct TaskManager {
     inner: UPSafeCell<TaskManagerInner>,
 }
 
+/// Task information 
+#[derive(Copy, Clone)]
+pub struct TaskInfo {
+    /// last start time
+    start_time: usize,
+    /// syscall times
+    syscall: [u32; MAX_SYSCALL_NUM]
+}
+
+
+impl TaskInfo {
+    /// Create a new TaskInfo
+    pub fn new() -> Self {
+        TaskInfo {
+            start_time: 0, 
+            syscall: [0; MAX_SYSCALL_NUM],
+        }
+    }
+
+    /// Update the start time of TaskInfo
+    pub fn update_time(&mut self) {
+        if self.start_time == 0 {
+            self.start_time = get_time_ms();
+        }
+    }
+
+    /// Get the running time of TaskInfo
+    pub fn get_time(&mut self) -> usize {
+        get_time_ms() - self.start_time
+    }
+}
+
+
+
+#[allow(dead_code)]
 /// Inner of Task Manager
 pub struct TaskManagerInner {
     /// task list
     tasks: [TaskControlBlock; MAX_APP_NUM],
     /// id of current `Running` task
     current_task: usize,
+    /// task information
+    infos: [TaskInfo; MAX_APP_NUM],
 }
 
 lazy_static! {
@@ -65,6 +103,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    infos: [TaskInfo::new(); MAX_APP_NUM],
                 })
             },
         }
@@ -78,6 +117,7 @@ impl TaskManager {
     /// But in ch3, we load apps statically, so the first task is a real app.
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
+        inner.infos[0].update_time();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
@@ -121,6 +161,7 @@ impl TaskManager {
         if let Some(next) = self.find_next_task() {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
+            inner.infos[next].update_time();
             inner.tasks[next].task_status = TaskStatus::Running;
             inner.current_task = next;
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
@@ -135,6 +176,30 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+
+    fn count_sys_call(&self, syscall_id: usize) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.infos[current].syscall[syscall_id] += 1;
+        drop(inner);
+    }
+
+    /// Get syscall times of current `Running` task.
+    fn get_syscall_times(&self, syscall_num: &mut [u32; MAX_SYSCALL_NUM]) {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        syscall_num.copy_from_slice(&inner.infos[current].syscall);
+        drop(inner);
+    }
+
+    fn get_run_time(&self) -> usize {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        let time = inner.infos[current].get_time();
+        drop(inner);
+        time
+    }
+
 }
 
 /// Run the first task in task list.
@@ -168,4 +233,19 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+/// Count the number of syscalls of current `Running` task.
+pub fn count_syscall(syscall_id: usize) {
+    TASK_MANAGER.count_sys_call(syscall_id);
+}
+
+/// Get syscall times of current `Running` task.
+pub fn get_syscall_times(syscall_num: &mut [u32; MAX_SYSCALL_NUM]) {
+    TASK_MANAGER.get_syscall_times(syscall_num);
+}
+
+/// Get running time of current `Running` task.
+pub fn get_current_process_run_time() -> usize {
+    TASK_MANAGER.get_run_time()
 }
