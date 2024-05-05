@@ -142,6 +142,12 @@ impl PhysAddr {
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
+
+    /// Get the physical address from the physical page number
+    pub fn new(&mut self, ppn: PhysPageNum, vpn: VirtPageNum) {
+        self.0 = ppn.0 << PAGE_SIZE_BITS | vpn.0;
+    }
+
 }
 impl From<PhysAddr> for PhysPageNum {
     fn from(v: PhysAddr) -> Self {

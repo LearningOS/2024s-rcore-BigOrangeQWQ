@@ -15,7 +15,7 @@
 //! We then call [`task::run_first_task()`] and for the first time go to
 //! userspace.
 
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![deny(warnings)]
 #![no_std]
 #![no_main]
@@ -102,6 +102,7 @@ pub fn rust_main() -> ! {
     mm::init();
     println!("[kernel] back to world!");
     mm::remap_test();
+    mm::frame_allocator_test();
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();

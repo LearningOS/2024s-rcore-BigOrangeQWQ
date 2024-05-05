@@ -63,6 +63,54 @@ impl MemorySet {
             None,
         );
     }
+
+    /// Check if the area is mapped
+    pub fn check_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr) -> bool {
+        // println!("start_va: {:?}, end_va: {:?}", start_va.floor(), end_va.ceil());
+        for area in self.areas.iter() {
+            // println!("a begin: {:x}, a end: {:x}", area.vpn_range.get_start().0, area.vpn_range.get_end().0);
+            //end_va > 页表的开始地址 && end_va <= 页表的结束地址
+            if area.vpn_range.get_start() < end_va.ceil()
+                && area.vpn_range.get_end() >= end_va.ceil()
+            {
+                // println!("check_framed_area: true");
+                return true;
+            }
+            // start_va >= 页表的开始地址 && start_va < 页表的结束地址
+            if area.vpn_range.get_start() <= start_va.floor()
+                && area.vpn_range.get_end() > start_va.floor()
+            {
+                // println!("check_framed_area: true");
+                return true;
+            }
+        }
+        // println!("check_framed_area: false");
+        false
+    }
+
+    /// unmap the area
+    pub fn remove_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr) {
+        let mut index: Option<usize> = None;
+        // println!("start_va: {:?}, end_va: {:?}", start_va.floor(), end_va.ceil());
+        for (idx, area) in self.areas.iter_mut().enumerate() {
+            // println!("a begin: {:?}, a end: {:?}", area.vpn_range.get_start(), area.vpn_range.get_end());
+            if area.vpn_range.get_start() == start_va.floor()
+                && area.vpn_range.get_end() == end_va.ceil()
+            {
+                index = Some(idx);
+                break;
+                // area.unmap(&mut self.page_table);
+                // return;
+            }
+        }
+
+        // println!("index: {:?}", index);
+        if let Some(index) = index {
+            self.areas[index].unmap(&mut self.page_table);
+            self.areas.remove(index);
+        }
+    }
+
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
         if let Some(data) = data {
