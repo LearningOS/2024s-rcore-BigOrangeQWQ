@@ -179,5 +179,5 @@ pub fn translated_struct<T>(token: usize, ptr: *const T) -> &'static mut T {
     let start_va = VirtAddr::from(ptr as usize);
     let vpn = start_va.floor();
     let ppn = page_table.translate(vpn).unwrap().ppn();
-    PhysAddr::from(ppn.0 << 12 | start_va.page_offset()).get_mut::<T>()
+    PhysAddr::new(ppn, start_va).get_mut::<T>()
 }

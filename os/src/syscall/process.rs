@@ -44,24 +44,11 @@ pub fn sys_yield() -> isize {
 /// HINT: What if [`TimeVal`] is splitted by two pages ?
 pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
     trace!("kernel: sys_get_time");
-    //_ts 指针指向的内存区域是不知道的，我们可以通过unsafe获取指针，
-        //然后根据sys_write的例子，即使用translated写入数据
     let us = crate::timer::get_time_us();
     let ts = translated_struct(current_user_token(),_ts);
     
     ts.sec = us / 1_000_000;
     ts.usec = us % 1_000_000;
-    // println!("OMG::{:?}",us);
-    // *ts = TimeVal {
-    //     sec: us / 1_000_000,
-    //     usec: us % 1_000_000,
-    // };
-    
-    // let page_table = PageTable::from_token(current_user_token());
-    // let start_va = VirtAddr::from(_ts as usize);
-    // let vpn = start_va.floor();
-    // let ppn = page_table.translate(vpn).unwrap().ppn();
-    // println!("vpn:{:?}",PhysAddr::from(ppn).get_mut::<TimeVal>());
     0
 }
 
