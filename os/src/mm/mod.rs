@@ -18,9 +18,7 @@ pub use frame_allocator::{frame_alloc, FrameTracker};
 pub use memory_set::remap_test;
 pub use memory_set::{kernel_stack_position, MapPermission, MemorySet, KERNEL_SPACE};
 pub use page_table::{translated_byte_buffer, PageTableEntry};
-/// debug pub page_table
-// use page_table::{PTEFlags, PageTable};
-pub use page_table::{PTEFlags, PageTable};
+use page_table::{PTEFlags, PageTable};
 pub use frame_allocator::frame_allocator_test;
 
 pub use page_table::translated_struct;

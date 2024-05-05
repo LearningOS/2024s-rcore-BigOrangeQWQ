@@ -147,7 +147,6 @@ impl PhysAddr {
     pub fn new(ppn: PhysPageNum, vpn: VirtAddr) -> Self {
         Self(ppn.0 << PAGE_SIZE_BITS | vpn.page_offset())
     }
-
 }
 impl From<PhysAddr> for PhysPageNum {
     fn from(v: PhysAddr) -> Self {
